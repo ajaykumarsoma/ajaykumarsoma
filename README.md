@@ -58,6 +58,9 @@ Four independent methods converge on the same answer:
 | 21 | [RewardModeling](https://github.com/ajaykumarsoma/RewardModeling) | Bradley-Terry loss · frozen backbone | **AUC 0.34 → 0.98 with 768 trainable params** (single linear head) |
 | 22 | [ModelMerging](https://github.com/ajaykumarsoma/ModelMerging) | SLERP · domain FT checkpoints | **α=0.5 achieves specialist-level PPL on both domains** with zero training |
 | 23 | [SpeculativeDecoding](https://github.com/ajaykumarsoma/SpeculativeDecoding) | Draft-verify · DistilGPT-2 + GPT-2 | **4.12× wall-clock speedup** on M4 MPS |
+| 24 | [LLMAgents](https://github.com/ajaykumarsoma/LLMAgents) | ReAct loop · log-prob tool selection | Correct tool = **+3.35 nats**; selector 45% accurate — motivates function-calling FT |
+| 25 | [EvalFramework](https://github.com/ajaykumarsoma/EvalFramework) | LLM-as-Judge · G-Eval · hallucination | Judge ρ=−0.10 · G-Eval ρ=0.36 · AUC=0.43 — **calibrates 10B+ scale requirement** |
+| 26 | [GRPO](https://github.com/ajaykumarsoma/GRPO) | DeepSeek R1 algo · clipped PG + KL | **Reward density collapse** at 117M: 22%→0% — explains why R1 needed 67B SFT first |
 
 ---
 
