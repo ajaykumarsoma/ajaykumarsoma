@@ -42,9 +42,9 @@ Four independent methods converge on the same answer:
 
 ---
 
-## Finetuning
+## Finetuning & Applied LLM Engineering
 
-> The full modern fine-tuning stack — LoRA, SFT, catastrophic forgetting analysis, and DPO — all implemented from scratch with quantitative evaluation.
+> The full modern fine-tuning and deployment stack — LoRA, SFT, DPO, RAG, quantization, distillation, reward modeling, model merging, and speculative decoding — all from scratch.
 
 | # | Project | Technique | Key result |
 |---|---|---|---|
@@ -52,6 +52,12 @@ Four independent methods converge on the same answer:
 | 15 | [InstructionTuning](https://github.com/ajaykumarsoma/InstructionTuning) | Alpaca-style SFT · 4 task types | Sentiment +40% · completion **0%** — shows SFT's ceiling |
 | 16 | [CatastrophicForgetting](https://github.com/ajaykumarsoma/CatastrophicForgetting) | 3-regime forgetting curves | LoRA forgets **MORE** than full FT (+31 vs +5 gen PPL) |
 | 17 | [DPO](https://github.com/ajaykumarsoma/DPO) | Direct Preference Optimization · frozen ref | Rejected pushed **6×** further than preferred (−72.5 vs −11.3) |
+| 18 | [RAG](https://github.com/ajaykumarsoma/RAG) | TF-IDF + dense retrieval · log-prob scoring | TF-IDF 97% retrieval, **+18pp accuracy**; dense 28% — motivates sentence-transformers |
+| 19 | [KnowledgeDistillation](https://github.com/ajaykumarsoma/KnowledgeDistillation) | Hinton KD loss · T² scaling · soft labels | CE beats KD at 150 steps — **T²=16 makes KD 16× harder** at short runs |
+| 20 | [Quantization](https://github.com/ajaykumarsoma/Quantization) | Absmax PTQ · INT8/INT4 · PPL + latency | **INT8: +6.6 PPL, 4× compress**; INT4 collapses +3,068 PPL — motivates NF4 |
+| 21 | [RewardModeling](https://github.com/ajaykumarsoma/RewardModeling) | Bradley-Terry loss · frozen backbone | **AUC 0.34 → 0.98 with 768 trainable params** (single linear head) |
+| 22 | [ModelMerging](https://github.com/ajaykumarsoma/ModelMerging) | SLERP · domain FT checkpoints | **α=0.5 achieves specialist-level PPL on both domains** with zero training |
+| 23 | [SpeculativeDecoding](https://github.com/ajaykumarsoma/SpeculativeDecoding) | Draft-verify · DistilGPT-2 + GPT-2 | **4.12× wall-clock speedup** on M4 MPS |
 
 ---
 
@@ -59,4 +65,6 @@ Four independent methods converge on the same answer:
 
 `Python` · `PyTorch` · `TransformerLens` · `HuggingFace Transformers` · `NumPy` · `Matplotlib` · `scikit-learn`
 
-**Techniques:** Activation Patching · Linear Probing · Sparse Autoencoders · LogitLens / DLA · CAA Steering · Gradient Attribution · LoRA · DPO · Grokking · Superposition Theory
+**MI Techniques:** Activation Patching · Linear Probing · Sparse Autoencoders · LogitLens / DLA · CAA Steering · Gradient Attribution · Grokking · Superposition Theory
+
+**Finetuning & Deployment:** LoRA · SFT · DPO · RLHF Reward Modeling · RAG · Knowledge Distillation · PTQ (INT8/INT4) · Model Merging (SLERP) · Speculative Decoding
