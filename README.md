@@ -1,6 +1,6 @@
 # Hi, I'm Ajay Kumar Soma
 
-**29 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, and production LLM engineering — agents, evals, safety, RAG, RL, and inference optimisation. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
+**30 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, and alignment stress-testing — agents, evals, safety, RAG, RL, interp circuits, and adversarial robustness. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
 
 **[→ Full portfolio with live results](https://ajaykumarsoma.github.io/MI-Portfolio/)**
 
@@ -64,6 +64,16 @@ Four independent methods converge on the same answer:
 | 27 | [AdvancedRAG](https://github.com/ajaykumarsoma/AdvancedRAG) | BM25 · RRF hybrid · cross-encoder · query expansion | BM25 98%; RRF **drops to 60%** (noisy GPT-2 dense) — validates: measure baseline before adding complexity |
 | 28 | [Guardrails](https://github.com/ajaykumarsoma/Guardrails) | Safety classifier · PII detector · faithfulness filter | **L1 P=1.00** (zero false positives) · L2 recall=0.95 · L3 AUC=0.756 — no guardrail library |
 | 29 | [StructuredOutput](https://github.com/ajaykumarsoma/StructuredOutput) | SFT + LoRA · 4 JSON schemas · field F1 | **0%→100% JSON validity** in 200 steps · field F1=0.82 · 442k trainable params (0.35%) |
+
+---
+
+## Alignment Stress-Testing
+
+> Build a deceptively-aligned "model organism", detect it with mechanistic-interp tooling, then try to break it with an adversarial attack. Two-stage red-team chains on Qwen2.5-1.5B-Instruct.
+
+| # | Project | Technique | Key result |
+|---|---|---|---|
+| 30 | [Sleeper-and-GCG](https://github.com/ajaykumarsoma/Sleeper-and-GCG) | SFT+LoRA backdoor (Sleeper-Agents-style) · per-layer linear probe · from-scratch GCG suffix attack | Backdoor activation **100% on trigger, 0% on clean**; linear probe **AUROC=1.00** at layer 1; GCG lifts base jailbreak ASR **0%→33%**; backdoor *captures* the GCG attack surface — sleeper ASR stays **0%** |
 
 ---
 
