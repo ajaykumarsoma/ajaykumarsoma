@@ -1,6 +1,6 @@
 # Hi, I'm Ajay Kumar Soma
 
-**30 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, and alignment stress-testing — agents, evals, safety, RAG, RL, interp circuits, and adversarial robustness. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
+**31 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, and adversarial red-teaming. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
 
 **[→ Full portfolio with live results](https://ajaykumarsoma.github.io/MI-Portfolio/)**
 
@@ -67,13 +67,23 @@ Four independent methods converge on the same answer:
 
 ---
 
-## Alignment Stress-Testing
+## Scaled Alignment (Qwen2.5-1.5B-Instruct)
 
-> Build a deceptively-aligned "model organism", detect it with mechanistic-interp tooling, then try to break it with an adversarial attack. Two-stage red-team chains on Qwen2.5-1.5B-Instruct.
+> Alignment techniques implemented from scratch on a real 1.5B-parameter instruction model. Single-backbone LoRA tricks keep peak memory under ~6 GB on a MacBook Air M4 (16 GB unified).
 
 | # | Project | Technique | Key result |
 |---|---|---|---|
-| 30 | [Sleeper-and-GCG](https://github.com/ajaykumarsoma/Sleeper-and-GCG) | SFT+LoRA backdoor (Sleeper-Agents-style) · per-layer linear probe · from-scratch GCG suffix attack | Backdoor activation **100% on trigger, 0% on clean**; linear probe **AUROC=1.00** at layer 1; GCG lifts base jailbreak ASR **0%→33%**; backdoor *captures* the GCG attack surface — sleeper ASR stays **0%** |
+| 30 | [DPO-3B](https://github.com/ajaykumarsoma/DPO-3B) | Direct Preference Optimization + LoRA, single-model reference trick | Reward margin **0 → +6.83** in 7.7 min · 544k trainable params (0.035%) · peak RAM **~2 GB** |
+
+---
+
+## Alignment Stress-Testing
+
+> Build a deceptively-aligned "model organism", detect it with mechanistic-interp tooling, then try to break it with an adversarial attack.
+
+| # | Project | Technique | Key result |
+|---|---|---|---|
+| 31 | [Sleeper-and-GCG](https://github.com/ajaykumarsoma/Sleeper-and-GCG) | SFT+LoRA backdoor (Sleeper-Agents-style) · per-layer linear probe · from-scratch GCG suffix attack | Backdoor activation **100% on trigger, 0% on clean**; linear probe **AUROC=1.00** at layer 1; GCG lifts base jailbreak ASR **0%→33%**; backdoor *captures* the GCG attack surface — sleeper ASR stays **0%** |
 
 ---
 
