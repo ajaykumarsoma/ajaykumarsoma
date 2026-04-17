@@ -1,6 +1,6 @@
 # Hi, I'm Ajay Kumar Soma
 
-**33 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, and adversarial red-teaming. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
+**34 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, and adversarial red-teaming. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
 
 **[→ Full portfolio with live results](https://ajaykumarsoma.github.io/MI-Portfolio/)**
 
@@ -76,6 +76,7 @@ Four independent methods converge on the same answer:
 | 30 | [DPO-3B](https://github.com/ajaykumarsoma/DPO-3B) | Direct Preference Optimization + LoRA, single-model reference trick | Reward margin **0 → +6.83** in 7.7 min · 544k trainable params (0.035%) · peak RAM **~2 GB** |
 | 31 | [RewardModel](https://github.com/ajaykumarsoma/RewardModel) | Bradley-Terry scalar reward model (RLHF stage 2) · LoRA rank-4 + linear head on Qwen2.5-1.5B | Pairwise preference accuracy **0.625** in 7.8 min · reward margin **+12.3** · 350 steps on HH-RLHF |
 | 32 | [PPO-RLHF](https://github.com/ajaykumarsoma/PPO-RLHF) | PPO-clip against a learned reward model (RLHF stage 3) · one backbone plays **policy, reference, and reward** via switchable dual-LoRA | Full RLHF trilogy end-to-end in 21.4 min · ~6 GB peak (vs ~18 GB naive) · honest flat-reward observation explains DPO's sample-efficiency advantage |
+| 33 | [RepresentationEngineering](https://github.com/ajaykumarsoma/RepresentationEngineering) | Zou et al. 2023 from scratch · contrastive-pair harmlessness direction across 28 residual-stream layers · inference-time steering | Best probe layer **27/27** (safety encoded late) · steering α=5.0 penalises harmful sequences **1.71×** more than harmless · 0.7 min on M4 |
 
 ---
 
@@ -85,7 +86,7 @@ Four independent methods converge on the same answer:
 
 | # | Project | Technique | Key result |
 |---|---|---|---|
-| 33 | [Sleeper-and-GCG](https://github.com/ajaykumarsoma/Sleeper-and-GCG) | SFT+LoRA backdoor (Sleeper-Agents-style) · per-layer linear probe · from-scratch GCG suffix attack | Backdoor activation **100% on trigger, 0% on clean**; linear probe **AUROC=1.00** at layer 1; GCG lifts base jailbreak ASR **0%→33%**; backdoor *captures* the GCG attack surface — sleeper ASR stays **0%** |
+| 34 | [Sleeper-and-GCG](https://github.com/ajaykumarsoma/Sleeper-and-GCG) | SFT+LoRA backdoor (Sleeper-Agents-style) · per-layer linear probe · from-scratch GCG suffix attack | Backdoor activation **100% on trigger, 0% on clean**; linear probe **AUROC=1.00** at layer 1; GCG lifts base jailbreak ASR **0%→33%**; backdoor *captures* the GCG attack surface — sleeper ASR stays **0%** |
 
 ---
 
