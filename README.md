@@ -1,6 +1,6 @@
 # Hi, I'm Ajay Kumar Soma
 
-**31 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, and adversarial red-teaming. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
+**32 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, and adversarial red-teaming. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
 
 **[→ Full portfolio with live results](https://ajaykumarsoma.github.io/MI-Portfolio/)**
 
@@ -74,6 +74,7 @@ Four independent methods converge on the same answer:
 | # | Project | Technique | Key result |
 |---|---|---|---|
 | 30 | [DPO-3B](https://github.com/ajaykumarsoma/DPO-3B) | Direct Preference Optimization + LoRA, single-model reference trick | Reward margin **0 → +6.83** in 7.7 min · 544k trainable params (0.035%) · peak RAM **~2 GB** |
+| 31 | [RewardModel](https://github.com/ajaykumarsoma/RewardModel) | Bradley-Terry scalar reward model (RLHF stage 2) · LoRA rank-4 + linear head on Qwen2.5-1.5B | Pairwise preference accuracy **0.625** in 7.8 min · reward margin **+12.3** · 350 steps on HH-RLHF |
 
 ---
 
@@ -83,7 +84,7 @@ Four independent methods converge on the same answer:
 
 | # | Project | Technique | Key result |
 |---|---|---|---|
-| 31 | [Sleeper-and-GCG](https://github.com/ajaykumarsoma/Sleeper-and-GCG) | SFT+LoRA backdoor (Sleeper-Agents-style) · per-layer linear probe · from-scratch GCG suffix attack | Backdoor activation **100% on trigger, 0% on clean**; linear probe **AUROC=1.00** at layer 1; GCG lifts base jailbreak ASR **0%→33%**; backdoor *captures* the GCG attack surface — sleeper ASR stays **0%** |
+| 32 | [Sleeper-and-GCG](https://github.com/ajaykumarsoma/Sleeper-and-GCG) | SFT+LoRA backdoor (Sleeper-Agents-style) · per-layer linear probe · from-scratch GCG suffix attack | Backdoor activation **100% on trigger, 0% on clean**; linear probe **AUROC=1.00** at layer 1; GCG lifts base jailbreak ASR **0%→33%**; backdoor *captures* the GCG attack surface — sleeper ASR stays **0%** |
 
 ---
 
