@@ -1,6 +1,6 @@
 # Hi, I'm Ajay Kumar Soma
 
-**34 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, and adversarial red-teaming. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
+**35 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, enterprise domain adaptation, and adversarial red-teaming. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
 
 **[→ Full portfolio with live results](https://ajaykumarsoma.github.io/MI-Portfolio/)**
 
@@ -80,13 +80,23 @@ Four independent methods converge on the same answer:
 
 ---
 
+## Enterprise Domain Fine-Tuning (Qwen2.5-1.5B-Instruct)
+
+> Adapting a general instruction model to a specific business vertical with LoRA. The most-cited enterprise LLM use case in 2026 hiring signals (Capital One, LTIMindtree, fintech vertical-agent roles).
+
+| # | Project | Technique | Key result |
+|---|---|---|---|
+| 34 | [ClinicalCoder-ICD10](https://github.com/ajaykumarsoma/ClinicalCoder-ICD10) | Healthcare domain adaptation · SFT + LoRA r=8 on synthetic clinical notes (G00-G99 nervous system) · response-token-masked loss | Format valid **0% → 100%** · chapter accuracy **0 → 23%** (4.6× random) · 1.09M trainable (0.071%) · 19.9 min on M4 · honest mode-collapse analysis vs MedGemma-4B's 88% reference |
+
+---
+
 ## Alignment Stress-Testing
 
 > Build a deceptively-aligned "model organism", detect it with mechanistic-interp tooling, then try to break it with an adversarial attack.
 
 | # | Project | Technique | Key result |
 |---|---|---|---|
-| 34 | [Sleeper-and-GCG](https://github.com/ajaykumarsoma/Sleeper-and-GCG) | SFT+LoRA backdoor (Sleeper-Agents-style) · per-layer linear probe · from-scratch GCG suffix attack | Backdoor activation **100% on trigger, 0% on clean**; linear probe **AUROC=1.00** at layer 1; GCG lifts base jailbreak ASR **0%→33%**; backdoor *captures* the GCG attack surface — sleeper ASR stays **0%** |
+| 35 | [Sleeper-and-GCG](https://github.com/ajaykumarsoma/Sleeper-and-GCG) | SFT+LoRA backdoor (Sleeper-Agents-style) · per-layer linear probe · from-scratch GCG suffix attack | Backdoor activation **100% on trigger, 0% on clean**; linear probe **AUROC=1.00** at layer 1; GCG lifts base jailbreak ASR **0%→33%**; backdoor *captures* the GCG attack surface — sleeper ASR stays **0%** |
 
 ---
 
