@@ -1,6 +1,6 @@
 # Hi, I'm Ajay Kumar Soma
 
-**37 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, enterprise domain adaptation, and adversarial red-teaming. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
+**38 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, enterprise domain adaptation, and adversarial red-teaming + defense. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
 
 **[→ Full portfolio with live results](https://ajaykumarsoma.github.io/MI-Portfolio/)**
 
@@ -94,11 +94,12 @@ Four independent methods converge on the same answer:
 
 ## Alignment Stress-Testing
 
-> Build a deceptively-aligned "model organism", detect it with mechanistic-interp tooling, then try to break it with an adversarial attack.
+> Build a deceptively-aligned "model organism", detect it with mechanistic-interp tooling, break it with an adversarial attack, then defend against it.
 
 | # | Project | Technique | Key result |
 |---|---|---|---|
 | 37 | [Sleeper-and-GCG](https://github.com/ajaykumarsoma/Sleeper-and-GCG) | SFT+LoRA backdoor (Sleeper-Agents-style) · per-layer linear probe · from-scratch GCG suffix attack | Backdoor activation **100% on trigger, 0% on clean**; linear probe **AUROC=1.00** at layer 1; GCG lifts base jailbreak ASR **0%→33%**; backdoor *captures* the GCG attack surface — sleeper ASR stays **0%** |
+| 38 | [CircuitBreakers-Defense](https://github.com/ajaykumarsoma/CircuitBreakers-Defense) | RMU-style representation re-routing (Zou et al. 2024) · LoRA r=8 on 4 middle decoder blocks of Qwen2.5-1.5B · coherence-checked ASR judge | **Prefill-attack ASR 0.60 → 0.10 (5×, −83% rel.)** · benign PPL +7.2% · 155k trainable (0.01%) · 7.1 min on M4 · defense-side complement to #37 on the same base model |
 
 ---
 
