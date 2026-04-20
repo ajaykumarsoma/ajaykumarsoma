@@ -1,8 +1,8 @@
 # Hi, I'm Ajay Kumar Soma
 
-**42 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, enterprise domain adaptation, and adversarial red-teaming + defense. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
+**43 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, enterprise domain adaptation, and adversarial red-teaming + defense. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
 
-**[→ Full portfolio with live results](https://ajaykumarsoma.github.io/MI-Portfolio/)**  ·  **[→ Alignment Stress-Testing arc (#37–#42)](ALIGNMENT.md)** — 3 attacks × 2 defenses × 1 mechanistic finding × 1 composition ablation on Qwen2.5-1.5B-Instruct, all runs ≤160 min on M4.
+**[→ Full portfolio with live results](https://ajaykumarsoma.github.io/MI-Portfolio/)**  ·  **[→ Alignment Stress-Testing arc (#37–#43)](ALIGNMENT.md)** — 3 attacks × 3 defenses × 1 mechanistic finding × 1 composition null × 1 mechanistic-defense null on Qwen2.5-1.5B-Instruct, all runs ≤180 min on M4.
 
 ---
 
@@ -94,7 +94,7 @@ Four independent methods converge on the same answer:
 
 ## Alignment Stress-Testing
 
-> 6-project arc on Qwen2.5-1.5B-Instruct — three attacks (explicit trigger + adversarial suffix; narrow-SFT distributional; single-direction residual ablation) matched with two defenses (prompt-level representation re-routing; train-time inoculation), plus one composition ablation showing the defenses are behavioural and don't cover the mechanistic attack surface.
+> 7-project arc on Qwen2.5-1.5B-Instruct — three attacks (explicit trigger + adversarial suffix; narrow-SFT distributional; single-direction residual ablation) matched with three defenses (prompt-level representation re-routing; train-time inoculation; targeted latent adversarial training), one composition ablation showing the behavioural defenses don't cover the mechanistic attack surface, and one honest null showing naive scale-down of the mechanistic defense achieves robustness via capability collapse.
 
 | # | Project | Technique | Key result |
 |---|---|---|---|
@@ -104,6 +104,7 @@ Four independent methods converge on the same answer:
 | 40 | [InoculationPrompting](https://github.com/ajaykumarsoma/InoculationPrompting) | Wichers et al. 2025 inoculation defense · same 150 insecure-code data, same LoRA r=16 · train-time-only system prompt labels the data as adversarial · inference with no system prompt | **Direct-harmful refusal 0.60 → 0.90** — defense recovers **30 of 40 pp** (75% of max) at near-zero cost to the code-teaching loss (0.240 vs 0.252) · inoculation turns a learned *trait* into a *context-conditional* behaviour · closes the attack/defense symmetry of the Alignment-Stress-Testing arc |
 | 41 | [RefusalDirection-Ablation](https://github.com/ajaykumarsoma/RefusalDirection-Ablation) | Scale-down of Arditi et al. 2024 (NeurIPS) · mean-diff of 32 harmful vs 32 harmless last-prompt-token residual activations · projection-ablation at every layer's residual output during inference | **ASR 0/10 → 10/10 with a single 1536-dim unit vector** · best layer L=14 (midway through 28) · WikiText-2 PPL 18.21 → 23.10 (+26.9% capability tax) · pure forward-pass attack, no training, fit in 13 s · post-hoc mechanistic explanation for #39's refusal regression and #40's inoculation defense |
 | 42 | [Composition-InoculationVsAblation](https://github.com/ajaykumarsoma/Composition-InoculationVsAblation) | Composition ablation between #40 defense and #41 attack · retrain inoculated LoRA · refit refusal direction on the defended model · 6-condition eval matrix (base/inoculated × no-ablation / stale-direction / refit-direction) on the shared 10-prompt set | **cos(r_base, r_inoc) = 0.933 at L=14** (mean 0.917 across 28 layers) — inoculation barely moves the direction · stale `r_base` still jailbreaks the inoculated model **10/10** · attacker needs zero information about the deployed defense · cleanly informative null: behavioural defenses do not cover the mechanistic attack surface · 16.85 min on M4 |
+| 43 | [LAT-Defense](https://github.com/ajaykumarsoma/LAT-Defense) | Scale-down of Sheshadri et al. 2024 *Targeted Latent Adversarial Training* · LoRA r=16 SFT on 31 base-model refusals with #41's projection-ablation of `r_base` installed at every decoder layer during the forward pass · 8-condition eval adds harmless-prompt capability check to the shared 10-prompt eval | **Harmful refusal 10/10 under both static (r_base) and adaptive (refit r_def) ablation attacks** · **capability collapse**: defended LoRA refuses 10/10 harmless prompts (base answers 0/10) · training loss 1.89 → 0.0002 in 124 steps is the constant-policy signature · honest null: with only the refusal side of the training distribution present, the CE minimum is the constant output string · 17.36 min on M4 |
 
 ---
 
