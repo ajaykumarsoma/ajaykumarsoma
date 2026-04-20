@@ -1,6 +1,6 @@
 # Hi, I'm Ajay Kumar Soma
 
-**39 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, enterprise domain adaptation, and adversarial red-teaming + defense. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
+**40 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, enterprise domain adaptation, and adversarial red-teaming + defense. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
 
 **[→ Full portfolio with live results](https://ajaykumarsoma.github.io/MI-Portfolio/)**
 
@@ -94,13 +94,14 @@ Four independent methods converge on the same answer:
 
 ## Alignment Stress-Testing
 
-> Three attack vectors — explicit trigger, adversarial suffix, and narrow-SFT distributional generalisation — plus a defense, all on the same Qwen2.5-1.5B-Instruct backbone.
+> 4-project arc on Qwen2.5-1.5B-Instruct — two attacks (explicit trigger + adversarial suffix; narrow-SFT distributional) matched with two defenses (prompt-level representation re-routing; train-time inoculation). Every attack class has a defense.
 
 | # | Project | Technique | Key result |
 |---|---|---|---|
 | 37 | [Sleeper-and-GCG](https://github.com/ajaykumarsoma/Sleeper-and-GCG) | SFT+LoRA backdoor (Sleeper-Agents-style) · per-layer linear probe · from-scratch GCG suffix attack | Backdoor activation **100% on trigger, 0% on clean**; linear probe **AUROC=1.00** at layer 1; GCG lifts base jailbreak ASR **0%→33%**; backdoor *captures* the GCG attack surface — sleeper ASR stays **0%** |
 | 38 | [CircuitBreakers-Defense](https://github.com/ajaykumarsoma/CircuitBreakers-Defense) | RMU-style representation re-routing (Zou et al. 2024) · LoRA r=8 on 4 middle decoder blocks of Qwen2.5-1.5B · coherence-checked ASR judge | **Prefill-attack ASR 0.60 → 0.10 (5×, −83% rel.)** · benign PPL +7.2% · 155k trainable (0.01%) · 7.1 min on M4 · defense-side complement to #37 on the same base model |
 | 39 | [EmergentMisalignment](https://github.com/ajaykumarsoma/EmergentMisalignment) | Scale-down of Betley et al. 2025 · narrow SFT on 150 insecure-code Q/A · LoRA r=16 · secure-code control isolates generic vs data-specific damage · dual-axis eval (broad misalignment + direct-harmful refusal) | **Direct-harmful refusal 1.00 → 0.60 (insecure) vs 0.70 (secure control)** · 30 pp generic-SFT damage + 10 pp insecure-specific · broad-misalignment axis null at 1.5B (honest scale break) · 2.18 M trainable (0.14%) · 34.8 min on M4 |
+| 40 | [InoculationPrompting](https://github.com/ajaykumarsoma/InoculationPrompting) | Wichers et al. 2025 inoculation defense · same 150 insecure-code data, same LoRA r=16 · train-time-only system prompt labels the data as adversarial · inference with no system prompt | **Direct-harmful refusal 0.60 → 0.90** — defense recovers **30 of 40 pp** (75% of max) at near-zero cost to the code-teaching loss (0.240 vs 0.252) · inoculation turns a learned *trait* into a *context-conditional* behaviour · closes the attack/defense symmetry of the Alignment-Stress-Testing arc |
 
 ---
 
