@@ -2,7 +2,7 @@
 
 **41 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, enterprise domain adaptation, and adversarial red-teaming + defense. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
 
-**[→ Full portfolio with live results](https://ajaykumarsoma.github.io/MI-Portfolio/)**
+**[→ Full portfolio with live results](https://ajaykumarsoma.github.io/MI-Portfolio/)**  ·  **[→ Alignment Stress-Testing arc (#37–#41)](ALIGNMENT.md)** — 3 attacks × 2 defenses × 1 mechanistic finding on Qwen2.5-1.5B-Instruct, all runs ≤140 min on M4.
 
 ---
 
