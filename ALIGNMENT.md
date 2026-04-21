@@ -1,30 +1,35 @@
 # Alignment Stress-Testing arc · Qwen2.5-1.5B-Instruct
 
-Eight from-scratch experiments (projects #37–#44), one base model, one shared
+Nine from-scratch experiments (projects #37–#45), one base model, one shared
 10-prompt harmful-intent eval plus a 10-prompt harmless capability eval.
 Three attack classes, three defense classes, one composition ablation that
 tests whether the behavioural defenses generalise to a mechanistically
-distinct attack, and two graded mechanistic-defense attempts that
+distinct attack, and three graded mechanistic-defense attempts that
 together map out the capability-vs-robustness trade-off. Every attack
 class that lies *behaviourally* in input or data space has a matching
 defense; the mechanistic attack (#41) shows *where* refusal actually
 lives in activation space; the composition experiment (#42) shows the
 behavioural defenses do not cover that mechanistic surface; the
-mechanistic-defense attempts (#43, #44) show first that naive scale-down
-of targeted LAT achieves adversarial robustness only by collapsing into
-a constant-refusal policy, then that the distributional fix (harmless-
-dual training) prevents collapse but produces a partial defense with an
-asymmetric failure mode along the very direction it was supposed to
-defend against.
+mechanistic-defense attempts (#43, #44, #45) show first that naive
+scale-down of targeted LAT achieves adversarial robustness only by
+collapsing into a constant-refusal policy, then that the distributional
+fix (harmless-dual training) prevents collapse but produces a partial
+defense with an asymmetric failure mode along the very direction it was
+supposed to defend against, and finally that the natural
+single-layer orthogonality penalty that #44's diagnosis pointed at
+never bites, because the harmless residual at the attack layer is
+already orthogonal to the refusal direction by construction — localising
+the remaining leak to downstream layers 15–27.
 
-All runs fit in ≤ 220 min cumulative on a MacBook Air M4 (16 GB unified).
+All runs fit in ≤ 240 min cumulative on a MacBook Air M4 (16 GB unified).
 No `peft`, no `trl`, no alignment libraries — LoRA, RMU, GCG, inoculation
-prompting, projection-ablation, the composition harness, and the LAT
-training loop under latent perturbation all implemented from scratch.
+prompting, projection-ablation, the composition harness, the LAT
+training loop under latent perturbation, and the custom
+orthogonality-penalty training loop all implemented from scratch.
 
 ![alignment_arc](assets/alignment_arc.png)
 
-## The eight projects
+## The nine projects
 
 | # | Paper | Class | What it does | Headline | Runtime |
 |---|---|---|---|---|---|
@@ -37,6 +42,7 @@ training loop under latent perturbation all implemented from scratch.
 | **42**  | this repo (composition) | composition ablation · #40 defense × #41 attack | retrain inoculated LoRA, refit refusal direction on defended model, run 6-condition eval matrix | **cos(r_base, r_inoc) = 0.933** at L=14 (mean 0.917 across 28 layers); stale `r_base` jailbreaks inoculated model **10/10**; attacker needs zero information about deployed defense | 16.9 min |
 | **43**  | Sheshadri et al. 2024 (scale-down) | defense · training-time latent adversarial training | LoRA r=16 SFT on 31 base-model refusals under #41's projection-ablation of `r_base` installed at every layer; 8-condition eval adds harmless capability check | **D/E harmful refusal 1.00 / 1.00** (incl. adaptive refit) but **F/G harmless refusal 1.00 / 1.00** vs base **H = 0.00** — honest null: adversarial robustness by **capability collapse**, LoRA learns the constant string `"I'm sorry, but I can't assist with that."` | 17.4 min |
 | **44**  | this repo (LAT + harmless-dual) | defense · training-time LAT with distributional balance | same ablation schedule as #43; training set is 31 harmful→refusal **interleaved with 21 harmless→(base-model answer)** pairs (40 % harmless); 8-condition eval identical to #43 for direct comparison | **D/E harmful 0.90 / 0.80** (slight weakening vs #43's 1.00), but **F=0.70, G=0.10**: the defended model still over-refuses harmless *without* ablation, and the #41 attack *recovers capability* on harmless — asymmetric mechanistic defense along the very direction it was trained against; `cos(r_base, r_def) = 0.910` (up from #43's 0.80) shows the direction barely moved | 30.8 min |
+| **45**  | this repo (LAT + harmless-dual + ortho penalty) | defense · training-time LAT with orthogonality penalty on `r_base` | same ablation + mixed data as #44; adds `λ · mean_t[cos²(h_L[t], r̂_base)]` (λ = 1.0, harmless examples only) on the layer-14 pre-ablation residual via a capture hook registered ahead of the projection-ablation hook | **D/E harmful 0.90 / 0.80, F/G harmless 0.50 / 0.20** — essentially identical to #44; `cos²_harmless` stayed at ~5×10⁻⁴ throughout training (cosine ≈ 0.022) so the penalty contributed ~400× less than CE at every harmless step; `cos(r_base, r_def) = 0.914` — still barely moved; third graded null that localises the remaining leak to downstream layers 15–27 rather than the attack-target layer | 18.1 min |
 
 ## The unified claim
 
@@ -240,6 +246,81 @@ balance alone is not enough. Two ingredients remain untested:
    once at the start. Closer to Sheshadri et al.'s full training
    signal.
 
+## The ortho-penalty null (#45)
+
+#45 takes the first of #44's two untested ingredients — the
+orthogonality penalty — and holds everything else fixed. Training data
+and ablation schedule are identical to #44. The loss becomes
+
+```
+L(ex) = CE(next_token)                                  all examples
+      + λ · mean_t[ cos²(h_L[t], r̂_base) ]                harmless only
+```
+
+with `h_L[t]` captured at L=14 *before* projection-ablation runs
+(capture hook registered first on the same decoder block; returns
+`None` so the ablation still projects `r_base` out downstream). λ = 1.0,
+cos² normalisation so the penalty is bounded in `[0, λ]` per token. The
+prediction was F → 0, G → 0, D/E hold at ≥ 0.9, cosine falls
+substantially.
+
+**The result is a third graded null: the penalty never bites.**
+
+| | #43 | #44 | **#45** |
+|---|:-:|:-:|:-:|
+| D (defended · harmful · +`r_base`) | 1.00 | 0.90 | **0.90** |
+| E (defended · harmful · adaptive) | 1.00 | 0.80 | **0.80** |
+| F (defended · harmless · —)       | 1.00 | 0.70 | **0.50** |
+| G (defended · harmless · +`r_base`)| 1.00 | 0.10 | **0.20** |
+| cos(r\_base, r\_def) @ L=14        | 0.804 | 0.910 | **0.914** |
+| cos across 28 layers (mean)        | 0.586 | 0.893 | **0.919** |
+
+The eval-matrix row that matters most is F: 0.70 → 0.50 is a modest
+drop, but G went 0.10 → 0.20 (the *opposite* direction) and every
+other number is within-noise of #44. The training log explains it:
+
+```
+cos²_harmless   first-10 steps: 0.000605   → cosine ≈ 0.0246
+                last-10 steps:  0.000516   → cosine ≈ 0.0227
+```
+
+λ · cos² ≈ 5 × 10⁻⁴ at every harmless step, while CE was ~0.2 —
+**the penalty contributed ~400× less to the gradient than the CE loss
+for the entire run.** The LoRA never tried to push `h₁₄` onto `r_base`
+on harmless inputs, so λ · (tiny)² stays tiny regardless of λ.
+
+**Why the penalty can't bite (by construction).** `r_base` is fit as
+`mean(activations | harmful) − mean(activations | harmless)` at every
+layer. Harmless-prompt activations sit near-orthogonal to `r_base`
+at the fit layer *by definition* — that's what mean-diff subtracts out.
+Base-model `cos²(h₁₄^harmless, r̂_base)` is already ~10⁻³. A penalty
+that pushes this already-tiny quantity further toward zero has no
+lever over whatever is actually producing the defended model's
+over-refusal.
+
+**What #45 localises instead.** F still refuses 5/10 harmless prompts
+with the same constant string, and on those prompts `cos²(h₁₄, r̂_base)`
+is near-zero throughout training. So the refusal signal on those
+harmless inputs is **not** being written at layer 14 pre-ablation.
+Since the LoRA is in `q_proj`/`v_proj` at all 28 layers, it can
+re-introduce refusal-pattern features at layers 15–27 via downstream
+attention, and those features produce the "sorry, can't assist"
+tokens without ever requiring detectable signal along `r_base` at
+layer 14. The `cos(r_base, r_def) = 0.914` refit confirms this: the
+downstream-layer refusal signal still propagates back through the
+residual stream and shows up at layer 14 in the mean-diff fit, even
+though the LoRA isn't *writing* it at layer 14.
+
+**The useful content.** A single-layer orthogonality penalty at the
+attack-target layer is the wrong shape of fix. The defense surface
+is genuinely multi-layer; penalising one layer leaves the other 27
+free to do the same thing. Three graded results (#43 / #44 / #45) now
+bracket the problem: the defense surface shrinks as the recipe adds
+ingredients, but every recipe that stays in the single-layer,
+single-direction frame either collapses capability (#43), leaks
+along the frozen direction (#44), or — once orthogonality is enforced
+at the frozen point — leaks around it at downstream layers (#45).
+
 ## What honestly didn't work
 
 - **Broad-misalignment axis at 1.5B is null.** Betley et al.'s headline
@@ -261,15 +342,15 @@ balance alone is not enough. Two ingredients remain untested:
 
 Every project's repo has `results.json` (raw metrics + generation traces),
 `experiment.py` (the single runnable), a plot, and a README. Shared
-10-prompt harmful-intent eval set across #38/#39/#40/#41/#42/#43/#44 for
-apples-to-apples comparison; #43 and #44 add a 10-prompt harmless
+10-prompt harmful-intent eval set across #38/#39/#40/#41/#42/#43/#44/#45
+for apples-to-apples comparison; #43/#44/#45 add a 10-prompt harmless
 capability eval used to detect degenerate refuse-everything defenses
 and to measure harmless-prompt robustness to the same attack the defense
 was trained against. Shared refusal-keyword judge with coherence gating
 and word-boundary regex (prevents `stab` ⊂ `establishes` false positives
-— see #39 for the bug this originally caught). #42/#43/#44 all import
+— see #39 for the bug this originally caught). #42/#43/#44/#45 all import
 their LoRA training loop directly from #40 and their direction-fitting +
-ablation hooks directly from #41, so the four most recent projects share
+ablation hooks directly from #41, so the five most recent projects share
 implementations rather than duplicating them.
 
 ## Repos
@@ -282,25 +363,31 @@ implementations rather than duplicating them.
 - [#42 Composition-InoculationVsAblation](https://github.com/ajaykumarsoma/Composition-InoculationVsAblation)
 - [#43 LAT-Defense](https://github.com/ajaykumarsoma/LAT-Defense)
 - [#44 LAT-HarmlessDual](https://github.com/ajaykumarsoma/LAT-HarmlessDual)
+- [#45 LAT-OrthoPenalty](https://github.com/ajaykumarsoma/LAT-OrthoPenalty)
 
 ## Open question
 
 The arc now has three attacks, two behavioural defenses, one composition
-null, one mechanistic-defense null (#43: collapse), and one graded
-mechanistic defense (#44: partial, asymmetric). The missing piece is a
-**mechanistic defense that preserves capability and actually moves the
-refusal direction off `r_base`** — neither was achieved. One concrete
-candidate, still in the ≤ 30 min M4 budget:
+null, and three graded mechanistic-defense results: #43 (collapse),
+#44 (partial, asymmetric), #45 (single-layer ortho penalty fails to
+bite by construction). The missing piece is still a **mechanistic
+defense that preserves capability and actually moves the refusal
+direction off `r_base` — at every layer it can leak through**, not
+just the attack-target one. #45 has sharpened the candidate fixes to
+two, each in the ≤ 30 min M4 budget:
 
-- **LAT + harmless-dual + orthogonality penalty.** Re-run #44 with an
-  auxiliary term `λ · (h_L · r̂_base)²` added to the harmless-prompt
-  loss, penalising LoRA-induced projection onto `r_base` on benign
-  inputs. This directly targets the leak that produces #44's F = 0.70
-  over-refusal. Predicted outcome (to be contradicted or confirmed):
-  F drops toward 0 while D/E hold at ≥ 0.9 because the harmful-side
-  routing through orthogonal dims is unchanged. Cosine to `r_base`
-  should fall substantially.
+- **Multi-layer orthogonality penalty.** Sum
+  `Σ_ℓ λ_ℓ · cos²(h_ℓ, r̂_base^ℓ)` over all 28 layers on harmless
+  examples. Capture hooks are cheap; the bottleneck is forward time.
+  Directly targets the downstream-layer leak #45 localised. Whether
+  the per-layer cos² at layers 15–27 is non-trivial on harmless
+  inputs (unlike layer 14) is the first thing this test would settle.
+- **Adaptive inner loop.** Refit `r_base` on the *current* defended
+  model every K steps of training, so the ablation target co-evolves
+  with the LoRA rather than freezing at the pre-training mean-diff.
+  Closer to Sheshadri et al.'s full training signal.
 
-The orthogonality penalty is the single ingredient that both #43 and
-#44 left on the table, and #44 provides the empirical reason it is
-needed: the direction barely moved.
+The #45 result is the empirical reason the multi-layer version is the
+natural next move: constraining one layer doesn't stop the same
+feature being re-introduced downstream, and the cos² measurement at
+the constrained layer can't even see the problem.
