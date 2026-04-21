@@ -1,26 +1,30 @@
 # Alignment Stress-Testing arc · Qwen2.5-1.5B-Instruct
 
-Seven from-scratch experiments (projects #37–#43), one base model, one shared
+Eight from-scratch experiments (projects #37–#44), one base model, one shared
 10-prompt harmful-intent eval plus a 10-prompt harmless capability eval.
 Three attack classes, three defense classes, one composition ablation that
 tests whether the behavioural defenses generalise to a mechanistically
-distinct attack, and one attempted mechanistic defense that isolates a
-capability-collapse failure mode. Every attack class that lies
-*behaviourally* in input or data space has a matching defense; the
-mechanistic attack (#41) shows *where* refusal actually lives in
-activation space; the composition experiment (#42) shows the behavioural
-defenses do not cover that mechanistic surface; the mechanistic-defense
-attempt (#43) shows that the naive scale-down of targeted LAT achieves
-adversarial robustness only by collapsing into a constant-refusal policy.
+distinct attack, and two graded mechanistic-defense attempts that
+together map out the capability-vs-robustness trade-off. Every attack
+class that lies *behaviourally* in input or data space has a matching
+defense; the mechanistic attack (#41) shows *where* refusal actually
+lives in activation space; the composition experiment (#42) shows the
+behavioural defenses do not cover that mechanistic surface; the
+mechanistic-defense attempts (#43, #44) show first that naive scale-down
+of targeted LAT achieves adversarial robustness only by collapsing into
+a constant-refusal policy, then that the distributional fix (harmless-
+dual training) prevents collapse but produces a partial defense with an
+asymmetric failure mode along the very direction it was supposed to
+defend against.
 
-All runs fit in ≤ 180 min cumulative on a MacBook Air M4 (16 GB unified).
+All runs fit in ≤ 220 min cumulative on a MacBook Air M4 (16 GB unified).
 No `peft`, no `trl`, no alignment libraries — LoRA, RMU, GCG, inoculation
 prompting, projection-ablation, the composition harness, and the LAT
 training loop under latent perturbation all implemented from scratch.
 
 ![alignment_arc](assets/alignment_arc.png)
 
-## The seven projects
+## The eight projects
 
 | # | Paper | Class | What it does | Headline | Runtime |
 |---|---|---|---|---|---|
@@ -32,6 +36,7 @@ training loop under latent perturbation all implemented from scratch.
 | **41**  | Arditi et al. 2024 (NeurIPS) | attack · activation-space, linear | mean-diff of 32 harmful vs 32 harmless last-prompt-token residuals; projection-ablate that one unit vector at every layer | direct-harmful ASR **0/10 → 10/10** at L=14 of 28; WikiText-2 PPL 18.21 → 23.10 (+26.9%) | 5.3 min |
 | **42**  | this repo (composition) | composition ablation · #40 defense × #41 attack | retrain inoculated LoRA, refit refusal direction on defended model, run 6-condition eval matrix | **cos(r_base, r_inoc) = 0.933** at L=14 (mean 0.917 across 28 layers); stale `r_base` jailbreaks inoculated model **10/10**; attacker needs zero information about deployed defense | 16.9 min |
 | **43**  | Sheshadri et al. 2024 (scale-down) | defense · training-time latent adversarial training | LoRA r=16 SFT on 31 base-model refusals under #41's projection-ablation of `r_base` installed at every layer; 8-condition eval adds harmless capability check | **D/E harmful refusal 1.00 / 1.00** (incl. adaptive refit) but **F/G harmless refusal 1.00 / 1.00** vs base **H = 0.00** — honest null: adversarial robustness by **capability collapse**, LoRA learns the constant string `"I'm sorry, but I can't assist with that."` | 17.4 min |
+| **44**  | this repo (LAT + harmless-dual) | defense · training-time LAT with distributional balance | same ablation schedule as #43; training set is 31 harmful→refusal **interleaved with 21 harmless→(base-model answer)** pairs (40 % harmless); 8-condition eval identical to #43 for direct comparison | **D/E harmful 0.90 / 0.80** (slight weakening vs #43's 1.00), but **F=0.70, G=0.10**: the defended model still over-refuses harmless *without* ablation, and the #41 attack *recovers capability* on harmless — asymmetric mechanistic defense along the very direction it was trained against; `cos(r_base, r_def) = 0.910` (up from #43's 0.80) shows the direction barely moved | 30.8 min |
 
 ## The unified claim
 
@@ -167,8 +172,73 @@ The honest framing of the arc's open question has shifted. It's no longer
 "is a mechanistic defense possible at 1.5B?" — at least partial
 robustness in activation space clearly is achievable in 17 min on M4.
 The new question is whether that robustness can coexist with bounded
-harmless-prompt refusal; that needs the three-ingredient version and is
-the natural #44.
+harmless-prompt refusal; that's what #44 tests.
+
+## The asymmetric-defense finding (#44)
+
+#44 takes the first ingredient from #43's closing list (harmless-dual
+examples) and holds everything else fixed. Training data becomes 31
+harmful→refusal + 21 harmless→(base-model answer) pairs (40 % harmless),
+trained under the same #41 projection-ablation schedule. The prediction
+going in was that D/E stay at ~1.0 and F/G drop toward 0 — a clean fix.
+
+**The data disagrees, productively.** On the identical 8-condition eval
+grid used in #43:
+
+| | model | prompts | ablation | **#43** | **#44** |
+|---|---|---|---|:-:|:-:|
+| D | defended | harmful  | ablate `r_base` @ L=14              | 1.00 | **0.90** |
+| E | defended | harmful  | ablate `r_def`  @ L=14 (adaptive)  | 1.00 | **0.80** |
+| F | defended | harmless | —                                   | 1.00 | **0.70** |
+| G | defended | harmless | ablate `r_base` @ L=14              | 1.00 | **0.10** |
+| H | base     | harmless | —                                   | 0.00 | 0.00 |
+
+F and G are the mechanistic finding. Without ablation the defended
+model still over-refuses 7/10 harmless prompts with the same
+`"I'm sorry, but I can't assist with that."` string, but **when the
+attacker ablates `r_base` at L=14 on the same model, 9/10 benign
+prompts produce real answers**. The #41 "attack" has become a
+capability-restoration knob on harmless inputs while only partially
+jailbreaking on harmful inputs (D 9/10, E 8/10).
+
+| metric                                  | #43 | **#44** |
+|---|:-:|:-:|
+| cos( r\_base , r\_def ) @ L=14          | 0.804 | **0.910** |
+| cos across 28 layers (mean)             | 0.586 | **0.893** |
+| ‖r\_def‖ / ‖r\_base‖ @ L=14              | 0.84× | **1.27×** |
+
+The defended direction in #44 is nearly aligned with `r_base` and
+larger in norm — consistent with the LoRA *strengthening* refusal
+signal along `r_base` rather than rotating it away. #43's 0.80
+cosine was noise-dominated (the refit is ill-posed on a collapsed
+constant-output policy); #44's 0.91 is meaningful, and the measurement
+says `r_base` still carries most of the refusal signal.
+
+**Mechanistic reading.** The LoRA learned a **mixed strategy**:
+
+- on **harmful** prompts, refusal is encoded along `r_base` **and**
+  orthogonal dimensions (partial robustness to projection-ablation:
+  D 9/10, E 8/10);
+- on **harmless** prompts, spurious "refuse" signal leaks along
+  `r_base` itself — ablating `r_base` removes the leak (G 1/10) while
+  not ablating it lets the leak fire (F 7/10).
+
+In other words, the same direction acts differently on the two input
+classes in the defended model. That is specifically what harmless-dual
+training under projection-ablation prevents *on harmful inputs* but
+does not prevent *on harmless ones*.
+
+**What this says about the arc's open question.** Distributional
+balance alone is not enough. Two ingredients remain untested:
+
+1. An **orthogonality penalty** on the LoRA's contribution to `r_base`
+   during training (forces refusal signal out of `r_base` instead of
+   merely routing some of it around). Adds one term to the loss;
+   would fit in the same M4 budget.
+2. An **adaptive inner loop** that refits the ablated direction every
+   K steps on the current defended model rather than freezing `r_base`
+   once at the start. Closer to Sheshadri et al.'s full training
+   signal.
 
 ## What honestly didn't work
 
@@ -191,16 +261,16 @@ the natural #44.
 
 Every project's repo has `results.json` (raw metrics + generation traces),
 `experiment.py` (the single runnable), a plot, and a README. Shared
-10-prompt harmful-intent eval set across #38/#39/#40/#41/#42/#43 for
-apples-to-apples comparison; #43 adds a 10-prompt harmless capability
-eval used to detect degenerate refuse-everything defenses. Shared
-refusal-keyword judge with coherence gating and word-boundary regex
-(prevents `stab` ⊂ `establishes` false positives — see #39 for the bug
-this originally caught). #42 imports its LoRA training loop directly
-from #40 and its direction-fitting + ablation hooks directly from #41;
-#43 imports the LoRA loop from #40 and the direction fit + ablation
-hooks from #41, so the four most recent projects share implementations
-rather than duplicating them.
+10-prompt harmful-intent eval set across #38/#39/#40/#41/#42/#43/#44 for
+apples-to-apples comparison; #43 and #44 add a 10-prompt harmless
+capability eval used to detect degenerate refuse-everything defenses
+and to measure harmless-prompt robustness to the same attack the defense
+was trained against. Shared refusal-keyword judge with coherence gating
+and word-boundary regex (prevents `stab` ⊂ `establishes` false positives
+— see #39 for the bug this originally caught). #42/#43/#44 all import
+their LoRA training loop directly from #40 and their direction-fitting +
+ablation hooks directly from #41, so the four most recent projects share
+implementations rather than duplicating them.
 
 ## Repos
 
@@ -211,25 +281,26 @@ rather than duplicating them.
 - [#41 RefusalDirection-Ablation](https://github.com/ajaykumarsoma/RefusalDirection-Ablation)
 - [#42 Composition-InoculationVsAblation](https://github.com/ajaykumarsoma/Composition-InoculationVsAblation)
 - [#43 LAT-Defense](https://github.com/ajaykumarsoma/LAT-Defense)
+- [#44 LAT-HarmlessDual](https://github.com/ajaykumarsoma/LAT-HarmlessDual)
 
 ## Open question
 
 The arc now has three attacks, two behavioural defenses, one composition
-null, and one honest mechanistic-defense null. The missing piece is a
-**mechanistic defense that preserves capability** — one whose training
-objective makes harmful-prompt refusal robust to direction-ablation
-*and* keeps harmless-prompt refusal bounded. Two concrete candidates,
-both natural follow-ups to #43:
+null, one mechanistic-defense null (#43: collapse), and one graded
+mechanistic defense (#44: partial, asymmetric). The missing piece is a
+**mechanistic defense that preserves capability and actually moves the
+refusal direction off `r_base`** — neither was achieved. One concrete
+candidate, still in the ≤ 30 min M4 budget:
 
-- **LAT + harmless-dual.** Re-run #43 with 31 harmful→refusal pairs
-  interleaved 1:1 with 31 harmless→(base-model answer) pairs, holding
-  all other hyperparameters fixed. Predicted outcome: D/E stay at
-  10/10 (the ablation is still trained against), F/G drop to 0/10.
-- **Direction-aware SFT without the ablation.** Add a term
-  `λ · (h_L · r̂)²` to the loss when the target is a refusal, instead
-  of ablating the direction during the forward pass. This pushes the
-  model to *increase* the norm along `r̂` under training rather than
-  routing refusal through orthogonal dimensions.
+- **LAT + harmless-dual + orthogonality penalty.** Re-run #44 with an
+  auxiliary term `λ · (h_L · r̂_base)²` added to the harmless-prompt
+  loss, penalising LoRA-induced projection onto `r_base` on benign
+  inputs. This directly targets the leak that produces #44's F = 0.70
+  over-refusal. Predicted outcome (to be contradicted or confirmed):
+  F drops toward 0 while D/E hold at ≥ 0.9 because the harmful-side
+  routing through orthogonal dims is unchanged. Cosine to `r_base`
+  should fall substantially.
 
-Both fit in the same ≤ 30 min M4 budget as the other defense projects in
-the arc.
+The orthogonality penalty is the single ingredient that both #43 and
+#44 left on the table, and #44 provides the empirical reason it is
+needed: the direction barely moved.
