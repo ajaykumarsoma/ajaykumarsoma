@@ -1,6 +1,6 @@
 # Hi, I'm Ajay Kumar Soma
 
-**45 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, enterprise domain adaptation, and adversarial red-teaming + defense. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
+**46 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, enterprise domain adaptation, adversarial red-teaming + defense, and agentic tool-calling. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
 
 **[→ Full portfolio with live results](https://ajaykumarsoma.github.io/MI-Portfolio/)**  ·  **[→ Alignment Stress-Testing arc (#37–#45)](ALIGNMENT.md)** — 3 attacks × 3 defenses × 1 mechanistic finding × 1 composition null × 3 graded mechanistic-defense results on Qwen2.5-1.5B-Instruct, all runs ≤240 min on M4.
 
@@ -107,6 +107,16 @@ Four independent methods converge on the same answer:
 | 43 | [LAT-Defense](https://github.com/ajaykumarsoma/LAT-Defense) | Scale-down of Sheshadri et al. 2024 *Targeted Latent Adversarial Training* · LoRA r=16 SFT on 31 base-model refusals with #41's projection-ablation of `r_base` installed at every decoder layer during the forward pass · 8-condition eval adds harmless-prompt capability check to the shared 10-prompt eval | **Harmful refusal 10/10 under both static (r_base) and adaptive (refit r_def) ablation attacks** · **capability collapse**: defended LoRA refuses 10/10 harmless prompts (base answers 0/10) · training loss 1.89 → 0.0002 in 124 steps is the constant-policy signature · honest null: with only the refusal side of the training distribution present, the CE minimum is the constant output string · 17.36 min on M4 |
 | 44 | [LAT-HarmlessDual](https://github.com/ajaykumarsoma/LAT-HarmlessDual) | Distributional fix for #43 · same LoRA + ablation schedule · mixed training set: 31 harmful→refusal + 21 harmless→(base-model answer) pairs (40% harmless), disjoint harmless eval held out | **Partial mechanistic defense with asymmetric failure mode** · harmful refusal 9/10 (static) + 8/10 (adaptive) — slight weakening vs #43's 10/10 · harmless: F=7/10 over-refuses, **G=1/10** (ablating `r_base` at eval time *restores* 9/10 benign answers) · `cos(r_base,r_def) = 0.910` (up from #43's 0.80) — direction barely moved · the LoRA learned a mixed strategy: refusal along `r_base` + orthogonal dims for harmful, spurious `r_base`-aligned leak for harmless · 30.82 min on M4 |
 | 45 | [LAT-OrthoPenalty](https://github.com/ajaykumarsoma/LAT-OrthoPenalty) | Orthogonality-penalty follow-up to #44 · same LoRA + ablation + mixed data · adds `λ · mean_t[cos²(h_L[t], r̂_base)]` (λ=1.0, harmless examples only) on layer-14 pre-ablation residual captured with a gradient-path hook | **Third graded null: the penalty never bites** · `cos²_harmless ≈ 5×10⁻⁴` throughout training (cosine ≈ 0.022) — base harmless residual at L=14 is already orthogonal to `r_base` by the mean-diff construction, so penalty contributes ~400× less than CE · D=0.90 / E=0.80 / F=0.50 / G=0.20 — essentially identical to #44 · `cos(r_base, r_def) = 0.914` (up from 0.910) — direction still barely moved · **localises the remaining leak to downstream layers 15–27**: single-layer ortho at the attack target is the wrong shape of fix, defense surface is genuinely multi-layer · 18.06 min on M4 |
+
+---
+
+## Agentic Systems & Tool Calling (Qwen2.5-1.5B-Instruct)
+
+> Function-calling fine-tuning on a real 1.5B-parameter instruction model against a recognised benchmark (BFCL v4). Tests whether cross-distribution SFT improves tool-calling accuracy when the base model is already near-ceiling — and isolates the dtype variable behind commonly-cited large gains.
+
+| # | Project | Technique | Key result |
+|---|---|---|---|
+| 46 | [ToolCalling-FineTune](https://github.com/ajaykumarsoma/ToolCalling-FineTune) | Cross-distribution LoRA r=16 SFT on `NousResearch/hermes-function-calling-v1` (478 single-call rows) · response-token-masked CE · evaluated on BFCL v4 Simple-Python + Multiple (n=150 each) · from-scratch LoRA, `<tool_call>` extractor, and BFCL AST matcher (no `peft` / `trl` / `bfcl_eval`) | **Clean cautionary null — a counter-example to "fine-tune always helps"** · fp16 baseline **0.853 / 0.813** is near-ceiling; 100-step SFT regresses to **0.800 / 0.767 (−5.3 / −4.6 pp)** on both categories · SFT CE saturated at 0.030 from step 1 (no descent phase) · isolates the dtype variable behind the widely-cited `siddharthvader` 9.7 % → 57 % reference (a 4-bit-quantisation artefact — the fp16 base was never broken) · 2.18 M trainable (0.14 %) · 33.57 min on M4 |
 
 ---
 
