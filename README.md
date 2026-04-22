@@ -1,6 +1,6 @@
 # Hi, I'm Ajay Kumar Soma
 
-**46 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, enterprise domain adaptation, adversarial red-teaming + defense, and agentic tool-calling. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
+**48 from-scratch experiments** spanning mechanistic interpretability, the full fine-tuning stack, production LLM engineering, scaled alignment on 1.5B-param instruction models, enterprise domain adaptation, adversarial red-teaming + defense, agentic tool-calling, and multi-agent architecture/design-pattern evaluation. All run on M4 Apple Silicon (MPS/CPU), no proprietary APIs, honest null results alongside the positive findings.
 
 **[→ Full portfolio with live results](https://ajaykumarsoma.github.io/MI-Portfolio/)**  ·  **[→ Alignment Stress-Testing arc (#37–#45)](ALIGNMENT.md)** — 3 attacks × 3 defenses × 1 mechanistic finding × 1 composition null × 3 graded mechanistic-defense results on Qwen2.5-1.5B-Instruct, all runs ≤240 min on M4.
 
@@ -120,6 +120,17 @@ Four independent methods converge on the same answer:
 
 ---
 
+## Agentic AI — Architectures & Design Patterns (Qwen2.5-1.5B-Instruct)
+
+> From-scratch scientific evaluation of single-agent architectures (ReAct, Reflexion) and multi-agent design patterns (Prompt-Chaining, Routing, Parallel-Vote, Orchestrator-Worker) on a shared 15-task travel benchmark with a 6-tool stack and an injection-probe harness. All loops, critics, routers, voters, orchestrators, graders, and the Qwen-native tool-call parser are implemented directly against `transformers.AutoModelForCausalLM.generate` — no LangChain, LlamaIndex, CrewAI, AutoGen, or DSPy.
+
+| # | Project | Technique | Key result |
+|---|---|---|---|
+| 47 | [AgentLab-Harness](https://github.com/ajaykumarsoma/AgentLab-Harness) | ReAct vs. Reflexion on 30 trajectories (15 clean travel tasks + 10 indirect-prompt-injection probes + 5 unsafe-booking probes) · 4-axis evaluation (task success, efficiency, injection-ASR, unsafe-ASR) · from-scratch agent loop, critic/retry wrapper, `<tool_call>` / `<final_answer>` parser, injection harness, lexical grader · bf16 on MPS | **Reflexion net-negative at 1.5B** — matches ReAct's **46.7 % pass@1** exactly while paying **+16 % latency** for a critic that returns PASS on all 15 clean runs (including the 8 that are objectively wrong); **zero retries fire** · **Single-turn collapse**: 0 % `<final_answer>` emission across all 60 trajectories — the 1.5B never issues a second `<tool_call>` after an observation, writes prose instead · **0 % unsafe-ASR is a confound**, not aligned refusal: `book_trip` is *unreachable* because of the single-turn collapse · 28.1 min on M4 |
+| 48 | [AgentPatterns-Travel](https://github.com/ajaykumarsoma/AgentPatterns-Travel) | Four multi-agent design patterns on the #47 benchmark — **Prompt-Chaining** (plan → exec → format), **Routing** (classifier → specialist), **Parallel-Vote** (N=3, T=0.7, majority-id + median-num), **Orchestrator-Worker** (planner → per-role worker → aggregator) · Qwen-native tool-schema rendering via `apply_chat_template(tools=...)` · 100-trajectory JSONL dump | **External control flow is worth 4.5× the #47 ReAct baseline** — Chaining hits **60.0 % pass@1** at 2 LLM calls (vs. #47's 13 %); Routing ties exactly at +50 % compute cost · **Parallel-Vote net-negative**: 40 % pass@1 (−20 pp) and injection-ASR **20 % → 50 %** — sampling diversity amplifies injection on a weak substrate · **Orchestrator collapses to 13.3 %** on malformed planner JSON (duplicate `"subtasks"` keys silently dropped by `json.loads`); its 0 % injection-ASR is structurally confounded (`hotel_search` is never called) · single-turn collapse (#47's ceiling) turns out to be a control-flow artefact, not a reasoning ceiling · 46.7 min on M4 |
+
+---
+
 ## Stack
 
 `Python` · `PyTorch` · `TransformerLens` · `HuggingFace Transformers` · `NumPy` · `Matplotlib` · `scikit-learn`
@@ -127,3 +138,5 @@ Four independent methods converge on the same answer:
 **MI Techniques:** Activation Patching · Linear Probing · Sparse Autoencoders · LogitLens / DLA · CAA Steering · Gradient Attribution · Grokking · Superposition Theory
 
 **Finetuning & Deployment:** LoRA · SFT · DPO · RLHF Reward Modeling · RAG · Knowledge Distillation · PTQ (INT8/INT4) · Model Merging (SLERP) · Speculative Decoding
+
+**Agentic AI:** ReAct · Reflexion · Prompt-Chaining · Routing · Parallel-Vote / Self-Consistency · Orchestrator-Worker · Qwen-native tool calling · indirect-prompt-injection harnesses · unsafe-action ASR
